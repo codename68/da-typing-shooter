@@ -9,6 +9,7 @@ To compile and try:
 
  In order to use the Makefile, one must also add the following META contents into the sdl2 META file:
 
+```
 name = "sdl2"
 description = "bindings to the SDL2 library"
 license = "Zlib"
@@ -31,6 +32,7 @@ package "image" (
    archive(byte) = "sdl2_img.cma"
    archive(native) = "sdl2_img.cmxa"
 )
+```
 
 - Install the GFS Didot font or change the path to a valid truetype font in game.ml (search let font_file = … at the beginning of the file).
 - Install the french dictionary in /usr/share/dict/french, or change the path to a valid list of words in dictionary.ml (search let dict_file = … at the beginning of the file).
