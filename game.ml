@@ -11,14 +11,14 @@ type enemy = {
   text_texture: Sdl.Texture.t;
   w: int;
   h: int;
-  draw: game -> enemy -> unit;
-  think: game -> enemy -> float -> unit;
-  on_kill: game -> enemy -> unit;
-  on_miss: game -> enemy -> unit;
-  on_touch: game -> enemy -> unit;
+  draw: t -> enemy -> unit;
+  think: t -> enemy -> float -> unit;
+  on_kill: t -> enemy -> unit;
+  on_miss: t -> enemy -> unit;
+  on_touch: t -> enemy -> unit;
 }
 
-and game = {
+and t = {
   renderer: Sdl.Render.t;
   font: Sdlttf.font;
   dict: Dictionary.t;
