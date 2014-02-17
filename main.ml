@@ -3,7 +3,7 @@ let _ =
   Random.self_init ();
   Sdl.init [ `EVERYTHING ];
   Sdlttf.init ();
-  Sdlimage.(init [ Init_PNG ]);
+  Sdlimage.(init [ `PNG ]);
   let window =
     Sdl.Window.(create
       ~title: "test"
