@@ -34,7 +34,7 @@ package "image" (
 )
 ```
 
-- Install the GFS Didot font or change the path to a valid truetype font in game.ml (search let font_file = … at the beginning of the file).
-- Install the french dictionary in /usr/share/dict/french, or change the path to a valid list of words in dictionary.ml (search let dict_file = … at the beginning of the file).
+- Install the GFS Didot font (or choose your preferred font using the --font-file switch).
+- Install the french dictionary in /usr/share/dict/french (or choose your preferred dictionary file using the --dict-file switch).
 - Then compile using make.
 - Finally, call main.native to try.
