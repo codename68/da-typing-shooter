@@ -1,4 +1,5 @@
 let _ =
+  Settings.init ();
   Random.self_init ();
   Sdl.init [ `EVERYTHING ];
   Sdlttf.init ();

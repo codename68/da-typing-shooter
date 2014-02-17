@@ -6,8 +6,6 @@ type t = {
   letters: UChar.t list;
 }
 
-let dict_file = "/usr/share/dict/french"
-
 let add dict count word =
   let c = UTF8.get word 0 in
   let size = UTF8.length word in
@@ -25,7 +23,7 @@ let add dict count word =
 let init () =
   let dict = Hashtbl.create 1000 in
   let count = Hashtbl.create 1000 in
-  let ch = open_in dict_file in
+  let ch = open_in !Settings.dict_file in
   let letters = ref [] in
   try
     while true do

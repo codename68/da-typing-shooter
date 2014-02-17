@@ -37,8 +37,6 @@ and t = {
 
 let id_ctr = ref 0
 
-let font_file = "/usr/share/fonts/truetype/didot/GFSDidot.otf"
-
 let load_image renderer file =
   let t = Sdlimage.load_png_rw (Sdlrwops.from_input (`Filename file)) in
   let texture =
@@ -370,7 +368,7 @@ let on_input game text =
 let init renderer =
   Sdl.Keyboard.start_text_input ();
   Sdl.Keyboard.set_text_input_rect (Sdlrect.({ x = 0; y = 0; w = 500; h = 500; }));
-  let font = Sdlttf.open_font font_file 16 in
+  let font = Sdlttf.open_font !Settings.font_file 16 in
   let dict = Dictionary.init () in
   {
     renderer;
