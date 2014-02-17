@@ -311,6 +311,9 @@ let think game delta =
   game.time <- game.time +. delta;
   game.time_since_last_shot <- game.time_since_last_shot +. delta
 
+(* get the size *in bytes* of the biggest prefix of the substring of [s1] beginning at
+   byte [i1] and the substring of [s2] beginning at byte [i2]. They must be positions
+   between UTF-8 characters. *)
 let rec biggest_prefix s1 i1 s2 i2 n =
   if i1 >= String.length s1 || i2 >= String.length s2 || UTF8.look s1 i1 <> UTF8.look s2 i2 then
     n
@@ -318,6 +321,8 @@ let rec biggest_prefix s1 i1 s2 i2 n =
     let size = UTF8.next s1 i1 - i1 in
     biggest_prefix s1 (i1 + size) s2 (i2 + size) (n + size)
 
+(* Called when player entered text. [p] corresponds to the size
+   in bytes of the match. The current enemy must be set. *)
 let on_add game p =
   let e = match game.current_enemy with
     | Some e -> e
