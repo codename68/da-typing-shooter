@@ -4,18 +4,20 @@ exception Game_finished of int
 
 type enemy = {
   id: int;
-  mutable x: float;
-  y: int;
-  text: string;
-  letter: UChar.t;
-  text_texture: Sdl.Texture.t;
+  mutable x: float; (* position in the lane *)
+  y: int; (* lane on which the enemy is present *)
+  text: string; (* text corresponding to the enemy *)
+  letter: UChar.t; (* first letter of the text *)
+  text_texture: Sdl.Texture.t; (* texture that contains the text *)
   w: int;
-  h: int;
+  h: int; (* width and height of that texture *)
+  strength: int; (* damage that the player takes when enemy breaks through *)
   draw: t -> enemy -> unit;
   think: t -> enemy -> float -> unit;
   on_kill: t -> enemy -> unit;
   on_miss: t -> enemy -> unit;
   on_touch: t -> enemy -> unit;
+  on_wall: t -> enemy -> unit;
 }
 
 and t = {
@@ -26,7 +28,6 @@ and t = {
   mutable current_enemy: enemy option;
   mutable enemies: enemy list;
   mutable time: float;
-  mutable next_wave: float;
   mutable life: int;
   mutable current_match: int;
   mutable score: int;
@@ -79,15 +80,36 @@ let get_text game size =
 let max_enemies = 20
 let lane_size = 20
 
+let remove_enemy game enemy =
+  begin
+    match game.current_enemy with
+    | None -> ()
+    | Some e ->
+      if e.id = enemy.id then
+        game.current_enemy <- None
+  end;
+  Sdl.Texture.destroy enemy.text_texture;
+  game.enemies <-
+    List.filter (fun e -> e.id <> enemy.id) game.enemies
+
+let take_damage game enemy =
+  game.life <- game.life - enemy.strength
+
+let (<|>) f g game enemy =
+  f game enemy;
+  g game enemy
+
 let create_enemy
     game
     ?lane
     ~difficulty
     ~draw
     ~think
+    ?(strength = 1)
     ?(on_miss = fun _ _ -> ())
     ?(on_touch = fun _ _ -> ())
     ?(on_kill = fun _ _ -> ())
+    ?(on_wall = remove_enemy <|> take_damage)
     ?(x = 400.)
     () =
   let lane =
@@ -124,11 +146,13 @@ let create_enemy
       letter = UTF8.get text 0;
       w;
       h;
+      strength;
       draw;
       think;
       on_miss;
       on_touch;
       on_kill;
+      on_wall;
     }
 
 let draw_texture_enemy texture game enemy =
@@ -155,20 +179,21 @@ let move speed game enemy delta =
 let repel m game enemy =
   enemy.x <- enemy.x +. m
 
-let goblin game =
+let goblin difficulty game =
   create_enemy
     game
-    ~difficulty: (Random.int 4 + 3)
+    ~difficulty: (Random.int 3 + 3 + difficulty)
     ~draw: (draw_texture_enemy (get_texture game "goblin"))
     ~think: (move 40.)
     ~on_miss: (repel (-10.))
     ~on_touch: (repel (5.))
+    ~on_wall: (take_damage <|> repel (20.))
     ()
 
-let rec ghoul ?lane ?x game =
+let rec ghoul ?lane ?x difficulty game =
   create_enemy
     game
-    ~difficulty: (Random.int 3 + 10)
+    ~difficulty: (Random.int 3 + 10 + difficulty)
     ~draw: (draw_texture_enemy (get_texture game "ghoul"))
     ~think: (move 20.)
     ~on_miss: (repel (-10.))
@@ -176,12 +201,13 @@ let rec ghoul ?lane ?x game =
     ~on_kill:
       (fun game enemy ->
          if Random.int 4 = 0 then
-           spawn_wave game [ghoul ~lane: enemy.y ~x: enemy.x])
+           spawn_wave game [ghoul ~lane: enemy.y ~x: enemy.x difficulty])
+    ~on_wall: (take_damage <|> repel 15.)
     ?lane
     ?x
     ()
 
-let axe ?lane ?x game =
+let axe ?lane ?x _difficulty game =
   create_enemy
     game
     ~difficulty: 1
@@ -195,11 +221,11 @@ let orc_axe_spawn_time = 2.
 let orc_stop_pos = 300.
 let orc_speed = 30.
 
-let orc game =
+let orc difficulty game =
   let spawn_axe = ref 0. in
   create_enemy
     game
-    ~difficulty: (Random.int 3 + 7)
+    ~difficulty: (Random.int 3 + 7 + difficulty)
     ~draw:
       (fun g e ->
          draw_texture_enemy (get_texture game "orc") g e;
@@ -216,28 +242,16 @@ let orc game =
            if !spawn_axe > orc_axe_spawn_time then
              begin
                spawn_axe := 0.;
-               spawn_wave game [axe ~lane: e.y ~x: (e.x -. 16.)]
+               spawn_wave game [axe ~lane: e.y ~x: (e.x -. 16.) difficulty]
              end
            else
              spawn_axe := !spawn_axe +. d)
     ~on_touch: (fun _ _ -> spawn_axe := 0.)
     ()
 
-let remove_enemy game enemy =
-  begin
-    match game.current_enemy with
-    | None -> ()
-    | Some e ->
-      if e.id = enemy.id then
-        game.current_enemy <- None
-  end;
-  Sdl.Texture.destroy enemy.text_texture;
-  game.enemies <-
-    List.filter (fun e -> e.id <> enemy.id) game.enemies
-
 let spawn_delay t = Random.float 3. +. 6.
 
-let waves =
+let waves: (int * (int -> t -> enemy option) list) list =
   [
     0, [ goblin; ];
     1, [ goblin; goblin; ];
@@ -257,40 +271,43 @@ let waves =
     10, [ goblin; goblin; goblin; orc; orc; ghoul; ghoul; ghoul; ];
   ]
 
-let difficulty t = int_of_float (t /. 10.)
+let wave_difficulty t = int_of_float (t /. 10.)
 
+let max_enemy_difficulty = 6
+let enemy_difficulty t = min (int_of_float (t /. 30.)) max_enemy_difficulty
+
+(* Return a wave that corresponds to the type of waves we want at
+   the current point in the game. *)
 let rec wave t =
   let r = List.nth waves (Random.int (List.length waves)) in
-  if fst r <= difficulty t then
-    snd r
+  if fst r <= wave_difficulty t then
+    List.map (fun f -> f (enemy_difficulty t)) (snd r)
   else
     wave t
 
 let spawn game delta =
-  (* for now, spawn a new enemy every [spawn_delay] *)
-  if game.time +. delta > game.next_wave then
-    begin
-      game.next_wave <- game.next_wave +. spawn_delay game.time;
-      spawn_wave game (wave game.time)
-    end
+  (* we spawn a new wave when the current wave is finished *)
+  if game.enemies = [] then
+    spawn_wave game (wave game.time)
 
 let think game delta =
+  (* update enemies *)
   List.iter (fun enemy -> enemy.think game enemy delta) game.enemies;
-  
-  let to_remove = ref [] in
-  List.iter
-    (fun enemy ->
-       if enemy.x <= 0. then to_remove := enemy :: !to_remove)
-    game.enemies;
-  List.iter
-    (fun enemy ->
-       remove_enemy game enemy;
-       game.life <- game.life - 1)
-    !to_remove;
 
+  (* trigger on_wall events *)
+  List.iter
+    (fun enemy ->
+       if enemy.x <= 0. then
+         enemy.on_wall game enemy)
+    game.enemies;
+
+  (* finish the game if the player died *)
   if game.life <= 0 then
     raise (Game_finished game.score);
+
+  (* spawn next wave if appropriate *)
   spawn game delta;
+
   game.time <- game.time +. delta;
   game.time_since_last_shot <- game.time_since_last_shot +. delta
 
@@ -356,7 +373,6 @@ let init renderer =
     enemies = [];
     current_enemy = None;
     time = 0.;
-    next_wave = 0.;
     life = 10;
     textures = load_textures renderer;
     current_match = 0;
