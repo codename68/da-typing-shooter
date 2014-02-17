@@ -1,0 +1,4 @@
+PKG sdl2
+PKG camomile
+S .
+B _build
