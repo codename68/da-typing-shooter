@@ -5,7 +5,7 @@ A shooter inspired by typespeed. To shoot an enemy, type the word on it.
 
 To compile and try:
 
-- Install first OCamlSDL2, OCamlSDL2_TTF (my fork), OCamlSDL2_Image, camomile.
+- Install first OCamlSDL2, OCamlSDL2_TTF, OCamlSDL2_Image, camomile.
 
  In order to use the Makefile, one must also add the following META contents into the sdl2 META file:
 
@@ -17,7 +17,7 @@ version = "@VERSION@"
 directory = "+sdl2"
 
 archive(byte) = "sdl2.cma"
-archive(native) = "sdl2.cmxa"
++archive(native) = "sdl2.cmxa"
 archive(byte,plugin) = "sdl2.cma"
 archive(native,plugin) = "sdl2.cmxs"
 
